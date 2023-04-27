@@ -57,10 +57,10 @@ enum bpf_map_type {
 };
 
 enum xdp_action {
-	XDP_ABORTED = 0,
-	XDP_DROP = 1,
-	XDP_PASS = 2,
-	XDP_TX = 3,
+	XDP_ABORTED  = 0,
+	XDP_DROP     = 1,
+	XDP_PASS     = 2,
+	XDP_TX       = 3,
 	XDP_REDIRECT = 4,
 };
 
@@ -84,8 +84,8 @@ struct ethhdr {
 };
 
 struct iphdr {
-	__u8 ihl: 4;
-	__u8 version: 4;
+	__u8 ihl : 4;
+	__u8 version : 4;
 	__u8 tos;
 	__be16 tot_len;
 	__be16 id;
@@ -146,3 +146,52 @@ struct pt_regs {
 	/* top of stack page */
 };
 #endif /* __TARGET_ARCH_x86 */
+
+#define __bpf_md_ptr(type, name) \
+	union { \
+		type name; \
+		__u64 : 64; \
+	} __attribute__((aligned(8)))
+
+/* user accessible mirror of in-kernel sk_buff.
+ * new fields can only be added to the end of this structure
+ */
+struct __sk_buff {
+	__u32 len;
+	__u32 pkt_type;
+	__u32 mark;
+	__u32 queue_mapping;
+	__u32 protocol;
+	__u32 vlan_present;
+	__u32 vlan_tci;
+	__u32 vlan_proto;
+	__u32 priority;
+	__u32 ingress_ifindex;
+	__u32 ifindex;
+	__u32 tc_index;
+	__u32 cb[5];
+	__u32 hash;
+	__u32 tc_classid;
+	__u32 data;
+	__u32 data_end;
+	__u32 napi_id;
+
+	/* Accessed by BPF_PROG_TYPE_sk_skb types from here to ... */
+	__u32 family;
+	__u32 remote_ip4;    /* Stored in network byte order */
+	__u32 local_ip4;     /* Stored in network byte order */
+	__u32 remote_ip6[4]; /* Stored in network byte order */
+	__u32 local_ip6[4];  /* Stored in network byte order */
+	__u32 remote_port;   /* Stored in network byte order */
+	__u32 local_port;    /* stored in host byte order */
+	/* ... here. */
+
+	__u32 data_meta;
+	__bpf_md_ptr(struct bpf_flow_keys *, flow_keys);
+	__u64 tstamp;
+	__u32 wire_len;
+	__u32 gso_segs;
+	__bpf_md_ptr(struct bpf_sock *, sk);
+};
+
+#define TC_ACT_OK 0
